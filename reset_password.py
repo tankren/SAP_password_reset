@@ -7,11 +7,21 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.utils import formataddr
-from ldap3 import Server, Connection, ALL, NTLM, ALL_ATTRIBUTES, ALL_OPERATIONAL_ATTRIBUTES, AUTO_BIND_NO_TLS, SUBTREE
+from ldap3 import (
+    Server,
+    Connection,
+    ALL,
+    NTLM,
+    ALL_ATTRIBUTES,
+    ALL_OPERATIONAL_ATTRIBUTES,
+    AUTO_BIND_NO_TLS,
+    SUBTREE,
+)
 import json
 
-    # 生成随机密码
-def newpass():    
+
+# 生成随机密码
+def newpass():
     letters = string.ascii_letters
     uppercases = string.ascii_uppercase
     digits = string.digits
@@ -21,10 +31,15 @@ def newpass():
     while True:
         new_password = ""
         for i in range(pwd_length):
-            new_password += "".join(secrets.choice(alphabet))     
-        if not new_password[-1] in special_chars and any(c.isupper() for c in new_password) and sum(c.isdigit() for c in new_password) >= 2 :
+            new_password += "".join(secrets.choice(alphabet))
+        if (
+            not new_password[-1] in special_chars
+            and any(c.isupper() for c in new_password)
+            and sum(c.isdigit() for c in new_password) >= 2
+        ):
             break
-    return new_password    
+    return new_password
+
 
 def send_mail(username, mailaddress, new_password):
     mail_host = "mailintern.vhit-weifu.com"
@@ -104,7 +119,9 @@ def send_mail(username, mailaddress, new_password):
   </table>
 </body>
 </html>
-""".format(SAPsystem=SAPsystem, username=username, new_password=new_password)
+""".format(
+            SAPsystem=SAPsystem, username=username, new_password=new_password
+        )
     else:
         print(f"邮箱不存在...")
         exit()
@@ -119,10 +136,12 @@ def send_mail(username, mailaddress, new_password):
         print(f"邮件发送成功...")
     except smtplib.SMTPException as e:
         print(f"{e}")
-        
+
     # SAP连接参数
-def unlock_reset(username, mailaddress):    
-    new_password=newpass()
+
+
+def unlock_reset(username, mailaddress):
+    new_password = newpass()
     conn_params = {
         "user": "RFC_SAPUM",
         "passwd": base64.b64decode("bjJdYnB3UHlQSzNbM0gj").decode("utf-8"),
@@ -175,47 +194,57 @@ def main(displayName):
     print("查询用户信息......")
     adserver = Server("WX9ADS01.vh.lan", connect_timeout=5)
     try:
-        adconn=Connection(adserver, user='vh\\vhcn', password="P@ssword123", authentication=NTLM, read_only=True, auto_bind=True)
+        adconn = Connection(
+            adserver,
+            user="vh\\vhcn",
+            password="P@ssword123",
+            authentication=NTLM,
+            read_only=True,
+            auto_bind=True,
+        )
     except Exception as ex:
-        print(ex)    
+        print(ex)
 
     search_filter = f"(&(displayName=*{displayName}*))"
 
     try:
-        adconn.search('OU=Useraccounts,OU=Wx9,DC=vh,DC=lan', search_filter, attributes=["sAMAccountName", "mail"])
+        adconn.search(
+            "OU=Useraccounts,OU=Wx9,DC=vh,DC=lan",
+            search_filter,
+            attributes=["sAMAccountName", "mail"],
+        )
     except Exception as ex:
-        print(ex)    
+        print(ex)
 
-    res=adconn.response_to_json()
-    res=json.loads(res)["entries"]
+    res = adconn.response_to_json()
+    res = json.loads(res)["entries"]
     try:
-        res=json.dumps(res[0])
-        info=json.loads(res)["attributes"]
+        res = json.dumps(res[0])
+        info = json.loads(res)["attributes"]
         print(f"用户信息：{info}")
-        username=info["sAMAccountName"]
-        mailaddress=info["mail"]
-        print('开始解锁并重置密码......')
+        username = info["sAMAccountName"]
+        mailaddress = info["mail"]
+        print("开始解锁并重置密码......")
         unlock_reset(username, mailaddress)
 
     except Exception as ex:
         print("用户不存在，请重新输入")
-        displayName=input("输入拼音姓名(如REN Chenlong或Chenlong)：")
+        displayName = input("输入拼音姓名(如REN Chenlong或Chenlong)：")
         main(displayName)
 
-displayName=input("输入拼音姓名(如REN Chenlong或Chenlong)：")
-options = ['PVH', 'QVH', 'DVH']
-user_input = ''
+
+displayName = input("输入拼音姓名(如REN Chenlong或Chenlong)：")
+options = ["PVH", "QVH", "DVH"]
+user_input = ""
 
 input_message = "选择需要修改密码的系统:\n"
 for index, item in enumerate(options):
-    input_message += f'{index+1}) {item}\n'
-input_message += '输入选项: '
+    input_message += f"{index+1}) {item}\n"
+input_message += "输入选项: "
 
 while user_input.lower() not in map(str, range(1, len(options) + 1)):
     user_input = input(input_message)
-print('选择的系统为:' + options[int(user_input) - 1])
-SAPsystem=options[int(user_input) - 1]
+print("选择的系统为:" + options[int(user_input) - 1])
+SAPsystem = options[int(user_input) - 1]
 
 main(displayName)
-
-
